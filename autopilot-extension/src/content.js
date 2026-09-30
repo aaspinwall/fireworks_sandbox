@@ -53,11 +53,19 @@
     return [...found].filter((el) => ![...found].some((o) => o !== el && o.contains(el)));
   }
 
+  // textContent glues adjacent elements together ("08:1510:30"); join text nodes with spaces instead.
+  function textOf(el) {
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const parts = [];
+    while (w.nextNode()) parts.push(w.currentNode.nodeValue);
+    return parts.join(' ').replace(/\s+/g, ' ');
+  }
+
   function findCard(el) {
     let n = el;
     for (let i = 0; i < 12 && n.parentElement && n.parentElement !== document.body; i++) {
       n = n.parentElement;
-      if (P.timesIn(n.textContent).length >= 2) return n;
+      if (P.timesIn(textOf(n)).length >= 2) return n;
     }
     return null;
   }
@@ -69,10 +77,10 @@
     results.length = 0;
     if (!settings.enabled) { renderPanel(); return; }
     for (const el of findPriceElements()) {
-      const fare = P.parseFareText(el.textContent);
+      const fare = P.parseFareText(textOf(el));
       if (!fare) continue;
       const card = findCard(el);
-      const cardText = card ? card.textContent : '';
+      const cardText = card ? textOf(card) : '';
       const hit = P.matchFare(flights, P.timesIn(cardText), fare.points, fare.taxes);
       const key = `${cardText.replace(/\s+/g, ' ').slice(0, 200)}|${fare.points}`;
       let cash = NaN;
@@ -140,7 +148,7 @@
   let root = null;
   function describe(card, hit) {
     if (hit && hit.f.flightNumbers.length) return `${hit.f.from || ''}→${hit.f.to || ''} ${hit.f.flightNumbers.join('/')}`;
-    const t = card ? P.timesIn(card.textContent) : [];
+    const t = card ? P.timesIn(textOf(card)) : [];
     return t.length ? 'Flight ' + fmt(t[0]) : 'Flight';
   }
   const fmt = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
